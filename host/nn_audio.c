@@ -1311,6 +1311,15 @@ static float audio_player_gain(void) {
     return audio_volume_curve(volume);
 }
 
+/* Average in 32 bits so full-scale samples cannot overflow. Surround stays untouched. */
+static void audio_mono(int16_t *pcm, int frames, int channels, int enabled) {
+    if (!enabled || channels != 2) return;
+    for (int i = 0; i < frames; i++) {
+        const int16_t mono = (int16_t)(((int32_t)pcm[2 * i] + pcm[2 * i + 1]) / 2);
+        pcm[2 * i] = pcm[2 * i + 1] = mono;
+    }
+}
+
 /* ---- the renderer thread --------------------------------------------------------------------------------------- */
 static uint64_t renderer_event;
 static volatile int renderer_running;
@@ -1335,6 +1344,8 @@ static DWORD WINAPI renderer_main(void *p) {
         au_unlock();
         if (gain_frames-- <= 0) gain_want = audio_player_gain(), gain_frames = 20;   /* (the menu read every 100 ms) */
         gain = audio_apply_gain(pcm, FRAME, out_channels, gain, gain_want);
+        int rx_option(int id, int otherwise);
+        audio_mono(pcm, FRAME, out_channels, rx_option(HOS_OPT_MONO_AUDIO, 0));
         output_frame(pcm);
         elapsed_frames++;
         if (renderer_event) hos_system_event_signal(renderer_event);

@@ -354,6 +354,7 @@ HDR, Detail, and GPU and memory (last: the rows to change when something is wron
 | | Mesh shaders | Automatic, Native, Compute (after a restart) | Automatic |
 | Audio | Volume | 0 to 100%, in steps of 5 | 100% |
 | | Mute in background | Off, On | Off |
+| | Mono audio | Off, On (stereo output only; changes at once) | Off |
 | | Audio output | Auto, Stereo, 5.1 (after a restart) | Auto |
 | Gameplay | FPS counter | Off, FPS, Frame time, Graph, Breakdown | Off |
 | | FPS counter position | Top right, Top left, Bottom right, Bottom left | Top right |

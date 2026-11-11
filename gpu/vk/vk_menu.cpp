@@ -1206,6 +1206,8 @@ Row rows[] = {
     {TAB_AUDIO, "Mute in background", &opts.mute_background, 0, 1, 1, tx_onoff,
      "Silences the game while another window has the focus. The sound comes back when you switch to the game.", nullptr,
      false, true},
+    {TAB_AUDIO, "Mono audio", &opts.mono_audio, 0, 1, 1, tx_onoff,
+     "Both stereo channels play their average. No change to 5.1 output; select Stereo to use mono. Changes at once.", nullptr, false, true},
     {TAB_AUDIO, "Audio output", &opts.audio_output, 0, 2, 1, tx_audio_output,
      "The speakers the game mixes its sound for. Applies after a restart.", hn_audio_output, true, true},
 
