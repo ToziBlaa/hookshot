@@ -3123,6 +3123,19 @@ void log_frame_stats() {
              (draw_desc_reused() - l_reused) / 120.0, (draw_slotgen_saves() - l_saves) / 120.0);
         l_reused = draw_desc_reused(), l_saves = draw_slotgen_saves();
         programs_frames_note(pskip, pwait_ms);   // (the load default's safety net: vk_programs.h)
+        {   // (first_ask.h: new pipelines asked of the caches by their first draw, instead of that draw being left out)
+            int64_t asks = 0, had = 0, over = 0;
+            double ask_ms = 0;
+            draw_stats5(&asks, &had, &over, &ask_ms);
+            static int64_t l_asks, l_had, l_over;
+            static double l_ask_ms;
+            if (asks != l_asks || over != l_over)
+                logf("vk: first draws: %lld new pipelines asked of the caches since the last line (%lld answered, %.1f ms in "
+                     "all), %lld past the frame's budget; %lld asked, %lld answered, %lld past the budget so far",
+                     (long long)(asks - l_asks), (long long)(had - l_had), ask_ms - l_ask_ms, (long long)(over - l_over),
+                     (long long)asks, (long long)had, (long long)over);
+            l_asks = asks, l_had = had, l_over = over, l_ask_ms = ask_ms;
+        }
         logf("vk: a frame: %.1f draws left out (not ready), %.2f waits for shaders or pipelines (%.1f ms); "
              "translation %.0f ms in all, %d jobs queued%s",
              (pskip - l_pskip) / 120.0, (pwaits - l_pwaits) / 120.0, (pwait_ms - l_pwait_ms) / 120.0,

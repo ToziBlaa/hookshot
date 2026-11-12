@@ -54,6 +54,7 @@
 #include "driver_faults.h"
 #include "fallback_size_policy.h"
 #include "translate_wait.h"
+#include "first_ask.h"
 
 #include "shaders/clear_f_frag_spv.h"
 #include "shaders/clear_i_frag_spv.h"
@@ -1082,6 +1083,7 @@ void skip_report_impl(double frames) {
     if (any) logf("%s", line);
 }
 std::atomic<int64_t> st_pipelines, st_links, st_link_us, st_lib_hits, st_lib_cold, st_lib_built, st_lib_build_us;
+std::atomic<int64_t> st_first_asks, st_first_ask_hits, st_first_ask_over, st_first_ask_us;   // (first_ask.h)
 std::atomic<int64_t> st_pipeline_us;
 double st_wait_ms;
 
@@ -2224,6 +2226,31 @@ PipeEntry* graphics_pipeline(const Program& p, const NvnState& s, const Targets&
         e->pipeline = build_graphics(p, s, at, topo);
         e->ready = true;
         return remember(e);
+    }
+    // (hookshot) asked of the caches here first, without compiling (first_ask.h): where the driver's cache or ours has it, the
+    // draw goes on with it now instead of being left out until a worker has asked the same thing. Within a budget a frame;
+    // what the caches lack, and what is past the budget, takes the path below as before. RX_VK_FIRST_ASK=0: off
+    static const bool first_ask_on = [] { const char* v = getenv("RX_VK_FIRST_ASK"); return !v || !env_value_off(v); }();
+    if (first_ask_on && dev.vk13.pipelineCreationCacheControl) {
+        static thread_local first_ask::Budget budget;
+        if (budget.allow(texture_frame_no())) {
+            const auto t0 = std::chrono::steady_clock::now();
+            bool needs_compiling = false;
+            use_counters.made_how = 0;
+            const VkPipeline had = build_graphics(p, s, at, topo, -1, &needs_compiling);
+            const int64_t us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t0).count();
+            budget.spent(us / 1000.0);
+            st_first_asks++, st_first_ask_us += us;
+            if (had) {
+                e->pipeline = had;
+                e->how.store(use_counters.made_how, std::memory_order_relaxed);
+                e->ready.store(true, std::memory_order_release);
+                st_first_ask_hits++;
+                return remember(e);
+            }
+        } else {
+            st_first_ask_over++;
+        }
     }
     // (linked here, from the libraries: the draw goes ahead, and the worker's full build replaces it when it is done. Not linked
     // when a library is cold: the entry stays not ready, and the draw is left out or waits for the full build)
@@ -9467,6 +9494,10 @@ void draw_stats2(int64_t* passes, int64_t* mesh, double* pipeline_ms) {
 }
 void draw_stats3(int64_t* pending_skips, int64_t* waits, double* wait_ms) {
     *pending_skips = st_pending_skips, *waits = st_waits, *wait_ms = st_wait_ms;
+}
+void draw_stats5(int64_t* asks, int64_t* answered, int64_t* over_budget, double* ask_ms) {
+    *asks = st_first_asks.load(), *answered = st_first_ask_hits.load(), *over_budget = st_first_ask_over.load();
+    *ask_ms = st_first_ask_us.load() / 1000.0;
 }
 bool draw_stats4(int64_t* links, double* link_ms, int64_t* lib_hits, int64_t* lib_cold, int64_t* lib_built, double* lib_build_ms) {
     *links = st_links.load(), *link_ms = st_link_us.load() / 1000.0, *lib_hits = st_lib_hits.load(), *lib_cold = st_lib_cold.load();

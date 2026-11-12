@@ -78,6 +78,8 @@ void draw_stats3(int64_t* pending_skips, int64_t* waits, double* wait_ms);
 /// (hookshot) pipelines linked from stage libraries in the draw, and the libraries asked of the driver for them: had, and cold;
 /// of the cold, those a worker has built since, and the workers' time in them. False: no stage libraries (RX_VK_GPL)
 bool draw_stats4(int64_t* links, double* link_ms, int64_t* lib_hits, int64_t* lib_cold, int64_t* lib_built, double* lib_build_ms);
+/// (first_ask.h) new pipelines their first draw asked the caches for: asked, answered, not asked for the frame's budget, ms
+void draw_stats5(int64_t* asks, int64_t* answered, int64_t* over_budget, double* ask_ms);
 void draw_skip_report(double frames);   // (hookshot) skips by the line that made them
 int64_t draw_desc_reused();
 /// (Descriptor reuse) Of those, the reuses the global registrations' generation check would have rebuilt for
