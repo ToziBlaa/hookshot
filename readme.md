@@ -372,7 +372,6 @@ HDR, Detail, and GPU and memory (last: the rows to change when something is wron
 | | Anisotropic filtering | Game's, 2x, 4x, 8x, 16x | 16x |
 | | GPU device | Auto, or each graphics card by name (after a restart) | Auto |
 | | VRAM budget | Auto, 3.6, 4.8, 6, 7.5, 9, 11 GB (2.2 GB only from the Minimum (4GB) preset); a quality preset sets it | Auto |
-| | Mesh shaders | Automatic, Native, Compute (after a restart) | Automatic |
 | Audio | Volume | 0 to 100%, in steps of 5 | 100% |
 | | Mute in background | Off, On | Off |
 | | Audio output | Auto, Stereo, 5.1 (after a restart) | Auto |
@@ -506,10 +505,12 @@ HDR, Detail, and GPU and memory (last: the rows to change when something is wron
 - **AMD Anti-Lag 2** Off is the game as without it. It works with Frame generation too: each game frame's present
   stage is given when that frame itself is shown, not at the made frames before it.
 - **Profile** runs the game as the console docked (at the Output resolution) or Handheld (1536x864): lighter on the GPU.
-- **Mesh shaders** is how the game's mesh programs (much of the scenery) run. Automatic uses the GPU's own mesh shaders
-  where it has them and the compute path where it has not. Native uses the GPU's own for every draw (a GPU without them
-  still gets the compute path). Compute uses the compute path on every GPU: try it if your card crashes or leaves objects
-  out; it is usually a little slower (`mesh_shaders=` in `hookshot_options.ini`, 0 to 2 in that order).
+- **Mesh shaders** (how the game's mesh programs, much of the scenery, run) is no longer a menu row: changing it made
+  the next start translate every shader again. The game uses the GPU's own mesh shaders where it has them, and the
+  compute path where it has not and on Linux AMD cards (issue 2245). For troubleshooting, `RX_VK_MESH_SHADERS=compute`
+  in `hookshot_env.txt` uses the compute path on every GPU (try it if your card crashes or leaves objects out; usually a
+  little slower), and `RX_VK_MESH_SHADERS=native` the GPU's own for every draw. A `mesh_shaders=` line left in
+  `hookshot_options.ini` is no longer read.
 - **Ultrawide menus:** with the Aspect ratio at the monitor's shape, the pause, item and map menus stay in the middle
   16:9, with what the game draws beside them out of focus, or black; Full width stretches them over the whole screen,
   as before. Loading screens and pre-rendered movies get the same sides. It changes at once.
