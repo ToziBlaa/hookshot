@@ -3,8 +3,9 @@
 nx2/compile_flags.py is the one list. nx2/build.py compiles every object with that list, and passes
 -DHOOKSHOT_COMPILE_FLAGS to host/hos_main.c alone, the same way -DHOOKSHOT_VERSION reaches the menu
 (tests/test_shader_stamp_cache.py checks the menu, and that the renderer does not get this define).
-hos_main.c prints it as the log's second line. nx2/make_game.py writes hookshot_flags.txt even when
-there is no release name for hookshot_version.txt. The compiler check passes that -D as one argument,
+hos_main.c prints it as the log's second line. nx2/make_game.py writes hookshot_flags.txt from
+the "compile flags:" line build.py printed, even when there is no release name for
+hookshot_version.txt. The compiler check passes that -D as one argument,
 quotes included, as nx2/build.py's compile_one does. Game-free.
 
     python -I -B tests/test_compile_flags.py [--cc gcc]
@@ -76,12 +77,20 @@ class CpuFlags(unittest.TestCase):
         self.assertTrue(text.startswith("-march="))
         self.assertIn("-ffp-contract=off", text)
 
-    def test_define_matches_the_text(self):
+    def test_extra_flags_are_machine_flags(self):
+        flags = compile_flags.cpu_flags("rocketlake", "", "-ffast-math -Ofast -O3 -mprefer-vector-width=256")
+        self.assertEqual(flags, ["-march=rocketlake", "-ffp-contract=off", "-mprefer-vector-width=256"])
+
+    def test_the_printed_line_is_the_list_the_compile_used(self):
+        flags = compile_flags.cpu_flags("rocketlake", "", "-mprefer-vector-width=256 -ffast-math")
+        self.assertEqual(compile_flags.from_build_line("compile flags: %s" % compile_flags.text(flags)), flags)
+        self.assertIsNone(compile_flags.from_build_line("version: v2.1.0"))
         flags = compile_flags.cpu_flags("rocketlake", "", "-mprefer-vector-width=256")
         self.assertEqual(compile_flags.define(flags), '-DHOOKSHOT_COMPILE_FLAGS="%s"' % compile_flags.text(flags))
 
     def test_current_follows_the_build_environment(self):
-        env = {"RX_MARCH": "rocketlake", "RX_MTUNE": "znver2", "RX_CPU_FLAGS": "-mprefer-vector-width=256"}
+        env = {"RX_MARCH": "rocketlake", "RX_MTUNE": "znver2",
+               "RX_CPU_FLAGS": "-ffast-math -mprefer-vector-width=256"}
         with mock.patch.dict(os.environ, env, clear=True):
             self.assertEqual(compile_flags.current(),
                              ["-march=rocketlake", "-ffp-contract=off", "-mtune=znver2", "-mprefer-vector-width=256"])
@@ -120,11 +129,12 @@ class RecordFile(unittest.TestCase):
             self.recorded(folder, flags)
             self.assertFalse((Path(folder) / "hookshot_version.txt").exists())
 
-    def test_write_without_a_list_uses_the_environment(self):
-        env = {"RX_MARCH": "rocketlake", "RX_MTUNE": "znver2", "RX_CPU_FLAGS": "-mprefer-vector-width=256"}
+    def test_the_file_is_the_list_it_was_given(self):
+        flags = compile_flags.cpu_flags("x86-64-v3", "", "")
+        env = {"RX_MARCH": "rocketlake", "RX_CPU_FLAGS": "-mprefer-vector-width=256"}
         with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, env, clear=True):
-            compile_flags.write(folder)
-            self.recorded(folder, compile_flags.current())
+            compile_flags.write(folder, flags)
+            self.recorded(folder, flags)
 
 
 class WiredIn(unittest.TestCase):
@@ -210,8 +220,21 @@ class WiredIn(unittest.TestCase):
                  and n.func.attr == "write"]
         self.assertEqual(len(calls), 1)
         call = calls[0]
-        self.assertEqual([isinstance(a, ast.Name) and a.id == "out" for a in call.args], [True])
-        self.assertEqual(call.keywords, [])   # (no flag list: the file is what this build compiled with)
+        self.assertEqual([type(a).__name__ for a in call.args], ["Name", "Name"])
+        self.assertEqual(call.args[0].id, "out")
+        self.assertEqual(call.keywords, [])
+        recorded = call.args[1].id
+        self.assertNotIn("compile_flags.current(", text)
+        taken = [n for n in ast.walk(tree)
+                 if isinstance(n, ast.Assign) and isinstance(n.value, ast.Call)
+                 and isinstance(n.value.func, ast.Attribute) and n.value.func.attr == "from_build_line"
+                 and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name)]
+        self.assertEqual(len(taken), 1)
+        stored = [n for n in ast.walk(tree)
+                  if isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Subscript)
+                  and isinstance(n.targets[0].value, ast.Name) and n.targets[0].value.id == recorded
+                  and isinstance(n.value, ast.Name) and n.value.id == taken[0].targets[0].id]
+        self.assertEqual(len(stored), 1, "hookshot_flags.txt is not the list build.py printed")
         at = call
         while at in parents:
             at = parents[at]

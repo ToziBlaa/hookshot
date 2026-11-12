@@ -2238,8 +2238,12 @@ def main(a=None):
             if len(parts) == 3 and parts[1].isdigit() and parts[2].isdigit():
                 plan[:] = [int(parts[1]), int(parts[2])]
     linking = []   # (build.py's "compiled in Ns, 0 failed": every object made, the link next)
+    recorded_flags = []   # (the "compile flags:" line build.py printed: the list it compiled with)
 
     def compile_line(line):
+        flags = compile_flags.from_build_line(line)
+        if flags is not None:
+            recorded_flags[:] = flags
         if re.match(r"compiled in \d+s, 0 failed$", line):
             linking.append(line)
         compiled(line)
@@ -2365,7 +2369,9 @@ def main(a=None):
                 # (the Python builder: builder is its pythonw.exe, and these the arguments before --update, host/hos_update.c)
                 if os.environ.get("HOOKSHOT_BUILDER_ARGS"):
                     f.write("builder_args=%s\n" % os.environ["HOOKSHOT_BUILDER_ARGS"])
-    compile_flags.write(out)   # (the CPU flags this build used, beside hookshot_version.txt: nx2/compile_flags.py)
+    if not recorded_flags:
+        fail("the compile did not say which CPU flags it used")
+    compile_flags.write(out, recorded_flags)   # (that printed list, beside hookshot_version.txt: nx2/compile_flags.py)
     # (the game's code as read: written again by every build, so not left behind in the work folder. The translated code (sa\gen)
     # and the compiled objects stay: the next build skips the lift when nothing it reads changed (#428) and compiles only what
     # changed; the builder says how much stays and lets it go. Kept in a development checkout)

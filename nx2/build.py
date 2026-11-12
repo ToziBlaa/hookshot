@@ -595,7 +595,8 @@ if os.environ.get("RX_MARCH"):
 elif MARCH != "x86-64-v3":
     print("build: this CPU has no AVX2: the game is built for %s (a little slower)" % MARCH, flush=True)
 MTUNE = os.environ.get("RX_MTUNE") or host_mtune()
-# (the same list compile_flags.write puts in the game folder, and HOOKSHOT_COMPILE_FLAGS in hos_main.c)
+# (the list this compile uses. make_game.py copies the "compile flags:" line into hookshot_flags.txt, and
+# HOOKSHOT_COMPILE_FLAGS in hos_main.c is that same text)
 CPU = compile_flags.cpu_flags(MARCH, MTUNE, os.environ.get("RX_CPU_FLAGS", ""))
 OPT = "O1"   # (the lifted code's level; code_hot.c's is RX_HOT_OPT)
 
