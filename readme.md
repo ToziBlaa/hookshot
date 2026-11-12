@@ -536,6 +536,9 @@ HDR, Detail, and GPU and memory (last: the rows to change when something is wron
   Linux's Noto CJK where a game font lacks one.
 - **Discord status** shows "Playing Hookshot" and the time played in your Discord status. It is on by default and does
   nothing unless a Discord client is running on this PC; with the row Off nothing is sent to it.
+- **Skip opening** skips the new-game opening, the story movie and Navi waking Link, and leaves later cutscenes, the
+  Deku Tree meeting, and the title screen alone. It is off by default. `HOS_SKIP_OPENING=1` turns it on for one run,
+  and `HOS_SKIP_OPENING=0` keeps the opening.
 - **Controller in background:** On keeps the controller working while another window has the focus. The keyboard and
   mouse still need the game's window.
 - **Mouse camera:** Native turns the camera with the mouse one to one, as in a PC game. As the stick uses the mouse in
