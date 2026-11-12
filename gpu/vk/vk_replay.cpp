@@ -3122,7 +3122,7 @@ void log_frame_stats() {
         logf("vk: a frame: %.0f draws kept their neighbour's descriptors (%.0f of them through other slots' registrations)",
              (draw_desc_reused() - l_reused) / 120.0, (draw_slotgen_saves() - l_saves) / 120.0);
         l_reused = draw_desc_reused(), l_saves = draw_slotgen_saves();
-        programs_frames_note(pskip, pwait_ms);   // (the load default's safety net: vk_programs.h)
+        programs_frames_note();   // (the load default's safety net: vk_programs.h)
         {   // (first_ask.h: new pipelines asked of the caches by their first draw, instead of that draw being left out)
             int64_t asks = 0, had = 0, over = 0;
             double ask_ms = 0;
