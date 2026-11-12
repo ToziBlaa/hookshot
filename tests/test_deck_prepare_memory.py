@@ -96,6 +96,8 @@ VkPipeline build_graphics(Program& p, int, int, VkPrimitiveTopology topo) {
     assert(driver_cache_only && p.layout && p.set_layout && topo==77); graphics++; return handle();
 }
 std::unordered_set<uint64_t> computes_read() { return {1001}; }
+std::string state_list_path(const char* path) { return path; }
+std::vector<uint64_t> state_list_computes(const std::string&) { return {1001}; }
 void ub_thread_off() {}
 bool prepare_stopped() { return false; }
 unsigned usable_cpus() { return 128; }
@@ -167,7 +169,9 @@ def main():
         'static void program_cache_release(', 'void program_cache_borrow(',
         'void program_cache_release_loaded(', 'std::vector<uint64_t> program_cache_precompile_keys(',
         'bool prepare_key_selected(')]
-    fixture = HEAD + '\n'.join(parts) + DRAW_HEAD + body(draw, 'static void precompile_stream(') + MAIN
+    plan = draw[draw.index('struct ComputePlan {'):draw.index('std::mutex state_mu;', draw.index('struct ComputePlan {'))]
+    assert '!env_on("HOOKSHOT_DECK_PREPARE") && programs_load_at_create()' in body(draw, 'void precompile_run(')
+    fixture = HEAD + '\n'.join(parts) + DRAW_HEAD + plan + body(draw, 'static void precompile_stream(') + MAIN
     with tempfile.TemporaryDirectory(prefix='hookshot-deck-memory-') as tmp:
         source, exe = Path(tmp) / 'check.cpp', Path(tmp) / 'check'
         source.write_text(fixture, encoding='utf-8')
