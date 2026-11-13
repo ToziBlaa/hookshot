@@ -23,8 +23,8 @@ import zipfile
 from part_links import SYSROOT_PART, is_absolute_link, relative_sysroot_link
 
 LIST_NAME = "hookshot-linux.txt"
-LATEST_LIST = "https://github.com/NotRexed/Hookshot/releases/latest/download/" + LIST_NAME
-LATEST_API = "https://api.github.com/repos/NotRexed/Hookshot/releases/latest"
+LATEST_LIST = "https://git.notrexed.dev/Hookshot/Hookshot/releases/latest/download/" + LIST_NAME
+LATEST_API = "https://git.notrexed.dev/api/v1/repos/Hookshot/Hookshot/releases/latest"
 
 
 class Part(object):
@@ -225,7 +225,7 @@ def _request(url, timeout, limit=MAX_DOWNLOAD):
 
 def _api_download(url):
     """A GitHub release link that failed: the same file through the API (scripts/linux/deps.sh does this for 504s)."""
-    prefix = "https://github.com/"
+    prefix = "https://git.notrexed.dev/"
     mark = "/releases/download/"
     if not url.startswith(prefix) or mark not in url:
         return None
@@ -233,11 +233,11 @@ def _api_download(url):
     tag, _, name = rest.partition("/")
     if not repo or not tag or not name or "/" in name:
         return None
-    info = _request("https://api.github.com/repos/%s/releases/tags/%s" % (repo, tag), 30)
+    info = _request("https://git.notrexed.dev/api/v1/repos/%s/releases/tags/%s" % (repo, tag), 30)
     import json
     for asset in json.loads(info.decode("utf-8")).get("assets", []):
         if asset.get("name") == name:
-            req = urllib.request.Request(_https(asset.get("url")), headers={
+            req = urllib.request.Request(_https(asset.get("browser_download_url")), headers={
                 "User-Agent": "Hookshot", "Accept": "application/octet-stream"})
             with urllib.request.urlopen(req, timeout=120) as response:
                 return _read_at_most(response, MAX_DOWNLOAD)
@@ -251,7 +251,7 @@ def fetch_bytes(url, timeout=60):
         try:
             return _request(url, timeout)
         except urllib.error.HTTPError as error:
-            last = "GitHub answered %s" % error.code
+            last = "git.notrexed.dev answered %s" % error.code
             if error.code < 500 and error.code != 429:
                 break
         except Exception as error:

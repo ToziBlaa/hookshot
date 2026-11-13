@@ -27,9 +27,9 @@ static int safe_tag(const char *s) {
 #include <stdlib.h>
 #include <string.h>
 
-#define UPDATE_HOST L"api.github.com"
-#define UPDATE_PATH L"/repos/NotRexed/Hookshot/releases/latest"
-#define RELEASES_PAGE L"https://github.com/NotRexed/Hookshot/releases/latest"
+#define UPDATE_HOST L"git.notrexed.dev"
+#define UPDATE_PATH L"/api/v1/repos/Hookshot/Hookshot/releases/latest"
+#define RELEASES_PAGE L"https://git.notrexed.dev/Hookshot/Hookshot/releases/latest"
 
 /* (a line "name=value" of a small text file, in UTF-8: its value, trimmed) */
 static int read_value(const wchar_t *path, const char *name, char *out, size_t cap) {
@@ -230,10 +230,10 @@ static int pipe_tag(const char *cmd, char *tag, size_t cap) {
 static int latest_tag(char *tag, size_t cap) {
     if (pipe_tag("curl -fsSL --max-time 4 --retry 2 -A Hookshot-update-check "
                  "-H \"Accept: application/vnd.github+json\" "
-                 "https://api.github.com/repos/NotRexed/Hookshot/releases/latest 2>/dev/null", tag, cap))
+                 "https://git.notrexed.dev/api/v1/repos/Hookshot/Hookshot/releases/latest 2>/dev/null", tag, cap))
         return 1;
     return pipe_tag("curl -fsSL --max-time 8 --retry 2 -A Hookshot-update-check "
-                    "https://github.com/NotRexed/Hookshot/releases/latest/download/hookshot-linux.txt 2>/dev/null", tag, cap);
+                    "https://git.notrexed.dev/Hookshot/Hookshot/releases/latest/download/hookshot-linux.txt 2>/dev/null", tag, cap);
 }
 
 /* the builder an update installed (builder/linux/linux_update.py): <data>/hookshot/builder/versions/<current>/AppRun. The
@@ -305,7 +305,7 @@ void hos_update_check(void) {
     if (strncmp(answer, "Update", 6)) return;
     if (!has_builder) {
         if (fork() == 0) {
-            execlp("xdg-open", "xdg-open", "https://github.com/NotRexed/Hookshot/releases/latest", (char *)0);
+            execlp("xdg-open", "xdg-open", "https://git.notrexed.dev/Hookshot/Hookshot/releases/latest", (char *)0);
             _exit(127);
         }
         return;
